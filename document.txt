@@ -1,0 +1,263 @@
+string字符串转[]byte切片
+方法：先将"127.0.0.1:8080"切割成为->“127.0.0.1”,“8080”，然后分别转[]byte
+示例：
+
+a:="127.0.0.1:8080"
+ip, port, err := net.SplitHostPort(a)
+
+ip_byte := []byte(net.ParseIP(ip_str).To4())
+p, err := strconv.Atoi(p_str)
+
+p_byte := make([]byte, 2)
+binary.BigEndian.PutUint16(p_byte, uint16(p))
+
+[]byte切片转string字符串
+方法：同上，分别转换
+示例：
+
+ip_byte:=[]byte
+port_byte:=[]byte
+var ip_str string
+if ip_byte是网址 {
+	ip_str = bytes.NewBuffer(ip_byte).String()
+} else {ip_byte是IP
+	ip_str = net.IP(ip_byte).String()
+}
+
+port_str := strconv.Itoa(int(binary.BigEndian.Uint16(r.DstPort)))
+addr:=net.JoinHostPort(s, p)
+
+实现目的：实现字符串切片去重，只是两个字符完全相同时，去除一个。
+
+实现方式：考虑两种，一种是常规的双重循环去除，另一种是利用map的key的唯一性实现。
+
+1 通过双重循环来过滤重复元素
+方法1，
+
+思路：利用for双重循环，新建一个slice，遍历原slice中的每一个元素，每一次判断这个元素和后面元素是否相同，若相同则去除，若不同则存入新slice中，判断本元素后，再继续判断下一个元素，直到判断完毕。
+
+package main
+  
+import "fmt"
+  
+func main() {
+    var arr = []string{"hello", "hi", "world", "hi", "china", "hello", "hi"}
+    fmt.Println(RemoveRepeatedElement(arr))
+}
+  
+//去除重复字符串
+func RemoveRepeatedElement(arr []string) (newArr []string) {
+    newArr = make([]string, 0)
+    for i := 0; i < len(arr); i++ {
+        repeat := false
+        for j := i + 1; j < len(arr); j++ {
+            if arr[i] == arr[j] {
+                repeat = true
+                break
+            }
+        }
+        if !repeat {
+            newArr = append(newArr, arr[i])
+        }
+    }
+    return newArr
+}
+方法2，
+
+思路：先对原slice使用sort进行排序，后面思路同方法1。
+
+package main
+  
+import(
+    "fmt"
+    "sort"
+)
+ 
+ //去除重复字符串和空格
+func RemoveDuplicatesAndEmpty(a []string) (ret []string){
+    a_len := len(a)
+    for i:=0; i < a_len; i++{
+        if (i > 0 && a[i-1] == a[i]) || len(a[i])==0{
+            continue;
+        }
+        ret = append(ret, a[i])
+    }
+    return
+}
+  
+func main(){
+    a := []string{"hello", "", "world", "yes", "hello", "nihao", "shijie", "hello", "yes", "nihao","good"}
+    sort.Strings(a)
+    fmt.Println(a)
+    fmt.Println(RemoveDuplicatesAndEmpty(a))
+}
+2. 通过字典来过滤
+思路：因为字典的主键唯一，所以可以用来判断元素是否重复。
+
+package main
+  
+import (
+    "fmt"
+)
+  
+func main() {
+    testStr := make([]string, 0)
+    testStr = append(testStr, "haha", "hehe", "hoho", "hehe")
+  
+    afterStr := removeDuplicate(testStr)
+    fmt.Println(afterStr)
+}
+  
+// 通过map主键唯一的特性过滤重复元素
+func removeDuplicate(arr []string) []string {
+    resArr := make([]string, 0)
+    tmpMap := make(map[string]interface{})
+    for _, val := range arr {
+        //判断主键为val的map是否存在
+        if _, ok := tmpMap[val]; !ok {
+            resArr = append(resArr, val)
+            tmpMap[val] = nil
+        }
+    }
+  
+    return resArr
+}
+
+3 效率考虑
+程序算法有两个指标：运行时间、内存消耗（即：时间复杂度、空间复杂度）。
+
+golang获取切片的交集/差集
+一.交集
+1.两个切片的交集
+采用map的实现取两个切片的交集。其中如果mp[s]访问成功，即有s这个键，ok为true，否则ok为false。以string类型为例：
+
+func intersect(a []string, b []string) []string {
+	inter := make([]uint, 0)
+	mp := make(map[string]bool)
+ 
+	for _, s := range a {
+		if _, ok := mp[s]; !ok {
+			mp[s] = true
+		}
+	}
+	for _, s := range b {
+		if _, ok := mp[s]; ok {
+			inter = append(inter, s)
+		}
+	}
+ 
+	return inter
+}
+调试：
+
+a := []string{"1", "2", "3", "4", "5", "1", "66", "6"}
+b := []string{"6", "7", "", "4", "5", "2"}
+for _, s := range intersect(a, b) {
+	println(s)
+}
+ 
+输出:
+6
+4
+5
+2
+2.多个切片的交集
+主要思路和2个切片时相同，小区别就是把，map的value类型改为了int用于计数，最后通过计数和传进的lists的长度关系判断是否需要该元素。以uint类型的切片为例:
+
+// intersect 获取交集
+func intersect(lists ...[]uint) []uint {
+	var inter []uint
+	mp := make(map[uint]int)
+	l := len(lists)
+ 
+	// 特判 只传了0个或者1个切片的情况
+	if l == 0 {
+		return make([]uint, 0)
+	}
+	if l == 1 {
+		for _, s := range lists[0] {
+			if _, ok := mp[s]; !ok {
+				mp[s] = 1
+				inter = append(inter, s)
+			}
+		}
+		return inter
+	}
+ 
+	// 一般情况
+	// 先使用第一个切片构建map的键值对
+	for _, s := range lists[0] {
+		if _, ok := mp[s]; !ok {
+			mp[s] = 1
+		}
+	}
+ 
+	// 除去第一个和最后一个之外的list
+	for _, list := range lists[1 : l-1] {
+		for _, s := range list {
+			if _, ok := mp[s]; ok {
+				// 计数+1
+				mp[s]++
+			}
+		}
+	}
+ 
+	for _, s := range lists[l-1] {
+		if _, ok := mp[s]; ok {
+			if mp[s] == l-1 {
+				inter = append(inter, s)
+			}
+		}
+	}
+ 
+	return inter
+}
+调试：
+
+a := []uint{1, 6, 5, 1, 5, 1, 69, 1, 2}
+b := []uint{1, 2, 3}
+c := []uint{2, 3, 4, 5, 6}
+d := intersect(a, b, c)
+for _, i := range d {
+	println(i)
+}
+ 
+输出:
+2
+二.差集
+首先从将第一个切片中的元素保存到map中，然后遍历第二个切片。如果该key存在，则删除该key。
+
+// minus 获取差集
+func minus(a []uint, b []uint) []uint {
+	var inter []uint
+	mp := make(map[uint]bool)
+	for _, s := range a {
+		if _, ok := mp[s]; !ok {
+			mp[s] = true
+		}
+	}
+	for _, s := range b {
+		if _, ok := mp[s]; ok {
+			delete(mp, s)
+		}
+	}
+	for key := range mp {
+		inter = append(inter, key)
+	}
+	return inter
+}
+
+获取随机IP
+func getaddr2(ip1 uint8, ip2 uint8, ip3 uint8) string {
+	rand.Seed(time.Now().Unix())
+	ip := fmt.Sprintf("%d.%d.%d.%d", ip1, ip2, ip3, rand.Intn(255))
+	return ip
+}
+ip []byte 转成字符串
+net.IP(IpByte).String()
+ip 字符串转成[]byte
+net.ParseIP(ipList[i]).To4()
+
+
+
+

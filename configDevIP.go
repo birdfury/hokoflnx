@@ -256,18 +256,17 @@ func main() {
 	var maskList []string
 	mergeSlice := mergeArr(list1, list2, list3)
 	resultSlice := RemoveRepeatedElement(mergeSlice)
-	//fmt.Println(resultSlice)
+	fmt.Println("local ips:",resultSlice)
 	for _, value1 := range resultSlice {
 		maskValue := getMask(value1)
 		maskList = append(maskList, net.IPMask(maskValue).String())
 	}
 	ipmask := RemoveRepeatedElement(maskList)
-	fmt.Println(ipmask)
+	fmt.Println("ipmask is:",ipmask)
 	var c = []byte{61}
 	var d = []byte{254}
 	ipAdd, err := configIP1(ipmask, resultSlice, c, d)
-	//setIP := RemoveRepeatedElement(ipAdd)
-	//ipAddress := minus(setIP, resultSlice)
+	
 	if err == nil {
 		fmt.Println("new ip is : ", ipAdd)
 	} else {
